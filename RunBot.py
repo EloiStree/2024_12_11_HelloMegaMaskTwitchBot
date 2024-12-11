@@ -7,7 +7,7 @@ def is_ssh():
 def ssh_print(text, *args):
     if BOOL_USE_PRINT:
         print(text, *args)
-BOOL_USE_PRINT = True #is_ssh()
+BOOL_USE_PRINT = True # is_ssh()
 
 # if is_ssh():
 #     run_command="sudo systemctl stop apintio_bot_twitch.service"
