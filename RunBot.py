@@ -7,16 +7,17 @@ def is_ssh():
 def ssh_print(text, *args):
     if BOOL_USE_PRINT:
         print(text, *args)
-BOOL_USE_PRINT = is_ssh()
+BOOL_USE_PRINT = True #is_ssh()
 
-if is_ssh():
-    run_command="sudo systemctl stop apintio_bot_twitch.service"
-    ssh_print("Stopping the service while we run ssh code with command:", run_command)
-    os.system(run_command)
+# if is_ssh():
+#     run_command="sudo systemctl stop apintio_bot_twitch.service"
+#     ssh_print("Stopping the service while we run ssh code with command:", run_command)
+#     os.system(run_command)
 
 
 
 # Debian: /lib/systemd/system/apintio_bot_twitch.service
+# sudo chmod 644 /lib/systemd/system/apintio_bot_twitch.service
 # Learn: https://youtu.be/nvx9jJhSELQ?t=279s
 """
 [Unit]
@@ -33,6 +34,9 @@ WantedBy=multi-user.target
 """
 # Learn: https://youtu.be/nvx9jJhSELQ?t=368
 # cd /lib/systemd/system/
+# sudo systemctl daemon-reload
+# sudo systemctl enable apintio_bot_twitch.service
+# chmod +x /git/twitch_bot/RunBot.py
 # sudo systemctl enable apintio_bot_twitch.service
 # sudo systemctl start apintio_bot_twitch.service
 # sudo systemctl status apintio_bot_twitch.service
@@ -175,6 +179,7 @@ def get_user_id_from_name(user_name):
 def on_message(ws, message):
     """Callback for when a message is received."""
     ssh_print(f"Received: {message}")
+    
     message = message.strip()
     message = message.strip(":")
     #apintio!apintio@apintio.tmi.twitch.tv PRIVMSG #eloiteaching :test
@@ -184,6 +189,7 @@ def on_message(ws, message):
     user_message= message[first_comma_index+1:].strip()
     ssh_print(f"User name:{user_name}")
     ssh_print(f"User message:{user_message}")
+
     if message.find(user_name)==0:
         ssh_print("User name found at start")
         if message.find("|")>0:
@@ -197,8 +203,25 @@ def on_message(ws, message):
                     ws.send(f"PRIVMSG #{CHANNEL} :User {user_name}({user_id}) has been verified and added")
             else:
                 ssh_print("Signature not verified :(")
+                
+    if user_message=="PING":
+        send_message_pong(ws)
+    
             
 
+def send_message(ws, message):
+        
+    ws.send(f"PRIVMSG #{CHANNEL} :{message}")
+    
+def send_message_hello_world(ws):
+    send_message(ws,">> Server Start\nHello World!\n🤖🧙‍♂️🦊")
+    s
+def send_message_bye_world(ws):
+    send_message(ws,"Server Stop 🛑👋!")
+    
+def send_message_pong(ws):
+    send_message(ws,"PONG")
+        
 
 def on_error(ws, error):
     """Callback for errors."""
@@ -210,6 +233,7 @@ def on_close(ws, close_status_code, close_msg):
     ssh_print(f"Closed: {close_status_code}, {close_msg}")
 
 
+    
 def on_open(ws):
     """Callback for when the WebSocket connection is established."""
     ssh_print("Connection opened")
@@ -219,6 +243,8 @@ def on_open(ws):
     ws.send(f"PASS oauth:{CLIENT_ACCESS_TOKEN}")
     ws.send(f"NICK {USERNAME}")
     ws.send(f"JOIN #{CHANNEL}")
+    send_message_hello_world(ws)
+    
     
     # Keep the connection alive (send PING periodically)
     def keep_alive():
@@ -228,7 +254,6 @@ def on_open(ws):
     
     
     threading.Thread(target=keep_alive, daemon=True).start()
-
 
 if __name__ == "__main__":
     # Create WebSocketApp and set callbacks
