@@ -1,5 +1,25 @@
 
+
+# Install required packages
+
+# pip install requests asyncio web3 hexbytes websocket-client --break-system-packages
+
 import os
+import requests
+import os
+import asyncio
+import random
+import socket
+import struct
+import uuid
+import os
+from web3 import Web3
+from hexbytes import HexBytes
+from eth_account.messages import encode_defunct
+import websocket
+import threading
+import time
+
 BOOL_USE_PRINT = False
 def is_ssh():
     return "SSH_CONNECTION" in os.environ or "SSH_TTY" in os.environ
@@ -7,7 +27,7 @@ def is_ssh():
 def ssh_print(text, *args):
     if BOOL_USE_PRINT:
         print(text, *args)
-BOOL_USE_PRINT = True # is_ssh()
+BOOL_USE_PRINT = is_ssh()
 
 # if is_ssh():
 #     run_command="sudo systemctl stop apintio_bot_twitch.service"
@@ -17,20 +37,36 @@ BOOL_USE_PRINT = True # is_ssh()
 
 
 # Debian: /lib/systemd/system/apintio_bot_twitch.service
-# sudo chmod 644 /lib/systemd/system/apintio_bot_twitch.service
 # Learn: https://youtu.be/nvx9jJhSELQ?t=279s
+
+# sudo nano /lib/systemd/system/apintio_bot_twitch.service
 """
 [Unit]
-Description=Twitch Bot
-After=multi-user.target
+Description=Twitch Bot Auth
+After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python  /git/twitch_bot/RunBot.py
-Restart=on-abort
+ExecStart=/usr/bin/python3 /git/twitch_bot/RunBot.py
+Restart=always
+User=root
+WorkingDirectory=/git/twitch_bot
 
 [Install]
 WantedBy=multi-user.target
+"""
+#1h
+# sudo nano /etc/systemd/system/apintio_bot_twitch.timer
+"""
+[Unit]
+Description=Twitch Bot Auth time manager
+
+[Timer]
+OnBootSec=0min
+OnUnitActiveSec=10s
+
+[Install]
+WantedBy=timers.target
 """
 # Learn: https://youtu.be/nvx9jJhSELQ?t=368
 # cd /lib/systemd/system/
@@ -42,11 +78,8 @@ WantedBy=multi-user.target
 # sudo systemctl status apintio_bot_twitch.service
 # sudo systemctl stop apintio_bot_twitch.service
 # sudo systemctl restart apintio_bot_twitch.service
+# sudo systemctl list-timers | grep apintio_bot_twitch
 
-
-
-import requests
-import os
 
 def read_or_create_file(file_path, default_content=""):
     
@@ -71,30 +104,17 @@ CLIENT_ID =read_or_create_file(client_id_path, "your_twitch_client_id")
 CLIENT_ACCESS_TOKEN= read_or_create_file(client_access_token_path, "your_twitch_token")
 
 
-    
-import asyncio
-import random
- 
-import socket
-import struct
-import uuid
-import os
-
-from web3 import Web3
-from hexbytes import HexBytes
-from eth_account.messages import encode_defunct
-    
-
-import websocket
-import threading
-import time
 
 
 
 
 
 
+
+# Where should we store the verified users twithc_id|public_address
 string_where_to_store_verified_user = "/git/metamask_users/twitch"
+
+
 def verify_signature_from_text(text, splitter="|"):
     splitted = text.split(splitter)
     if len(splitted) == 3:
@@ -105,7 +125,7 @@ def verify_signature(message, public_address, signed_message):
     w3 = Web3(Web3.HTTPProvider(""))
     mesage= encode_defunct(text=message)
     address_recovered = w3.eth.account.recover_message(mesage,signature=HexBytes(signed_message))
-    ssh_print(address_recovered+"\n+"+public_address)
+    ssh_print(address_recovered+" Recoverd vs Claim +"+public_address)
     is_verified = address_recovered == public_address
     return is_verified
 
@@ -143,6 +163,9 @@ CHANNEL = "eloiteaching"  # Include the hash (#) before the channel name
 
 
 
+# def whisper(ws, user, message):
+#     ws.send(f"PRIVMSG #{USERNAME} :.w {user} {message}")
+
 
 
 def get_user_id_from_name(user_name):
@@ -176,6 +199,18 @@ def get_user_id_from_name(user_name):
     return None
 
 
+def read_store_public_key(user_id):
+    string_file = f"{string_where_to_store_verified_user}/{user_id}.txt"
+    if not os.path.exists(string_file):
+        return None
+    
+    public_key =""
+    with open(string_file, "r") as f:
+        public_key = f.read().strip()
+    return public_key
+    
+    
+
 def on_message(ws, message):
     """Callback for when a message is received."""
     ssh_print(f"Received: {message}")
@@ -185,12 +220,13 @@ def on_message(ws, message):
     #apintio!apintio@apintio.tmi.twitch.tv PRIVMSG #eloiteaching :test
     mark_index=message.find("!")
     first_comma_index=message.find(":")
-    user_name = message[0:mark_index]
+    user_name = message[0:mark_index].lower()
     user_message= message[first_comma_index+1:].strip()
     ssh_print(f"User name:{user_name}")
     ssh_print(f"User message:{user_message}")
 
-    if message.find(user_name)==0:
+    
+    if user_message.lower().find(user_name.lower()) == 0:
         ssh_print("User name found at start")
         if message.find("|")>0:
             ssh_print ("MetaMask Signed requested")
@@ -204,8 +240,42 @@ def on_message(ws, message):
             else:
                 ssh_print("Signature not verified :(")
                 
-    if user_message=="PING":
+    elif user_message=="!PING":
         send_message_pong(ws)
+        
+    elif user_message=="!hello":
+        send_message(ws,"Hello World!")
+        
+    elif user_message=="!time":
+        send_message(ws, time.ctime())
+        
+    elif user_message=="!delete_key":
+        user_id = get_user_id_from_name(user_name)
+        string_file = f"{string_where_to_store_verified_user}/{user_id}.txt"
+        if os.path.exists(string_file):
+            os.remove(string_file)
+            send_message(ws,f"Deleted:{user_name}({user_id})>🦊>None")
+        
+    elif user_message=="!key":
+        # To remote later when I have the queue in place for API calls
+        user_id = get_user_id_from_name(user_name)
+        public_key= read_store_public_key(user_id)
+        if public_key is not None: 
+            send_message(ws,f"Stored:{user_name}({user_id})>🦊>{public_key}")
+        else :
+            send_message(ws,f"Stored:{user_name}({user_id})>🦊>")
+    elif user_message=="!restart_bot" and (user_name=="apintio" or user_name=="eloiteaching"):
+        exit()
+        ws.close()
+            
+    else:
+            
+        try:
+            int_value = int(user_message)
+            ssh_print(f"User int command: {int_value}")
+        except:
+            a=0
+        
     
             
 
@@ -215,7 +285,7 @@ def send_message(ws, message):
     
 def send_message_hello_world(ws):
     send_message(ws,">> Server Start\nHello World!\n🤖🧙‍♂️🦊")
-    s
+    
 def send_message_bye_world(ws):
     send_message(ws,"Server Stop 🛑👋!")
     
@@ -226,11 +296,13 @@ def send_message_pong(ws):
 def on_error(ws, error):
     """Callback for errors."""
     ssh_print(f"Error: {error}")
+    send_message_bye_world(ws)
 
 
 def on_close(ws, close_status_code, close_msg):
     """Callback for when the WebSocket is closed."""
     ssh_print(f"Closed: {close_status_code}, {close_msg}")
+    send_message_bye_world(ws)
 
 
     
