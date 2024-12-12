@@ -20,6 +20,37 @@ import websocket
 import threading
 import time
 
+
+BOOL_ANONYMOUS_UDP_IS_ON = True
+
+def get_ip_from_hostname(hostname):
+    try:
+        return socket.gethostbyname(hostname)
+    except socket.gaierror:
+        ssh_print(f"Failed to get IP for hostname: {hostname}")
+        return None
+
+UDP_IVP4_ANONYMOUS_RELAY = "127.0.0.1"
+UDP_IVP4_ANONYMOUS_RELAY = "194.8.253.226"
+UDP_PORT_ANONYMOUS_RELAY = 3615
+hostname = "apint.ddns.net"
+ip_address = get_ip_from_hostname(hostname)
+print(f"IP address of {hostname} is {ip_address}")
+
+if ip_address is not None:
+    UDP_IVP4_ANONYMOUS_RELAY = ip_address
+    print(f"Using {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY} as the relay server")
+    
+
+
+def push_integer_as_anonyme(int_value):
+    if BOOL_ANONYMOUS_UDP_IS_ON:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(struct.pack('<i', int_value), (UDP_IVP4_ANONYMOUS_RELAY, UDP_PORT_ANONYMOUS_RELAY))
+            ssh_print(f"Sent {int_value} to {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY}")
+            s.close()
+
+
 BOOL_USE_PRINT = False
 def is_ssh():
     return "SSH_CONNECTION" in os.environ or "SSH_TTY" in os.environ
@@ -222,6 +253,7 @@ def on_message(ws, message):
     first_comma_index=message.find(":")
     user_name = message[0:mark_index].lower()
     user_message= message[first_comma_index+1:].strip()
+    user_message_lenght=len(user_message)
     ssh_print(f"User name:{user_name}")
     ssh_print(f"User message:{user_message}")
 
@@ -240,41 +272,64 @@ def on_message(ws, message):
             else:
                 ssh_print("Signature not verified :(")
                 
-    elif user_message=="!PING":
-        send_message_pong(ws)
+    # elif user_message=="!PING":
+    #     send_message_pong(ws)
         
-    elif user_message=="!hello":
-        send_message(ws,"Hello World!")
+    # elif user_message=="!hello":
+    #     send_message(ws,"Hello World!")
         
     elif user_message=="!time":
         send_message(ws, time.ctime())
         
-    elif user_message=="!delete_key":
-        user_id = get_user_id_from_name(user_name)
-        string_file = f"{string_where_to_store_verified_user}/{user_id}.txt"
-        if os.path.exists(string_file):
-            os.remove(string_file)
-            send_message(ws,f"Deleted:{user_name}({user_id})>🦊>None")
+    #SHOULD BE AN OTHER BOT THAT JUST READ THE CHAT
+    #ADDED JUST TO MAKE SOME QUICK TESTING.
+    elif BOOL_ANONYMOUS_UDP_IS_ON and user_message_lenght>2 and user_message[0]=='!' and user_message[1]=='i': 
+        try:
+            int_value = int(user_message[2:])
+            push_integer_as_anonyme(int_value)
+        except:
+            a=0
+            
+    # # TEXT COMMANDS ARE HEAVY AND HAZARDOUS
+    # # SHOULD BE AN DEDICATED RASPBERRY WITH SOME TEXT INTERPRETOR TO INTEGER ACTION
+    # elif BOOL_ANONYMOUS_UDP_IS_ON and user_message_lenght>2 and user_message[0]=='!' and user_message[1]=='c': 
+    #         string_command = user_message[2:]
+    #         ssh_print(f"Command request:{string_command}")
+    #         # IN MY TOOL A COMMAND IS LIKE A cmd or terminal on a raspberry
+
+    # # TEXT COMMANDS ARE HEAVY AND HAZARDOUS
+    # # SHOULD BE AN DEDICATED RASPBERRY WITH SOME TEXT INTERPRETOR TO INTEGER ACTION
+    # elif BOOL_ANONYMOUS_UDP_IS_ON and user_message_lenght>2 and user_message[0]=='!' and user_message[1]=='s': 
+    #         string_command = user_message[2:]
+    #         ssh_print(f"Shortcut request:{string_command}")
+    #         # IN MY TOOL A shortcut is char and unicode to be translated to command(s)
+    #         # i1024 80> i2024 300> C 10> c 
+    #         # ✂️>📜1  = ctrl+x in the temporal clipboard 1
+    #         # 📜1>✂️ = ctrl+v from the temporal clipboard 1
+    #         # 📜1>📜2 = copy from clipboard 1 to clipboard
+    #         # 🖱️↗️10:20 = move mouse 10x 20y 
         
-    elif user_message=="!key":
-        # To remote later when I have the queue in place for API calls
-        user_id = get_user_id_from_name(user_name)
-        public_key= read_store_public_key(user_id)
-        if public_key is not None: 
-            send_message(ws,f"Stored:{user_name}({user_id})>🦊>{public_key}")
-        else :
-            send_message(ws,f"Stored:{user_name}({user_id})>🦊>")
+    # elif user_message=="!delete_key":
+    #     user_id = get_user_id_from_name(user_name)
+    #     string_file = f"{string_where_to_store_verified_user}/{user_id}.txt"
+    #     if os.path.exists(string_file):
+    #         os.remove(string_file)
+    #         send_message(ws,f"Deleted:{user_name}({user_id})>🦊>None")
+        
+    # elif user_message=="!key":
+    #     # To remote later when I have the queue in place for API calls
+    #     user_id = get_user_id_from_name(user_name)
+    #     public_key= read_store_public_key(user_id)
+    #     if public_key is not None: 
+    #         send_message(ws,f"Stored:{user_name}({user_id})>🦊>{public_key}")
+    #     else :
+    #         send_message(ws,f"Stored:{user_name}({user_id})>🦊>")
     elif user_message=="!restart_bot" and (user_name=="apintio" or user_name=="eloiteaching"):
         exit()
         ws.close()
             
-    else:
             
-        try:
-            int_value = int(user_message)
-            ssh_print(f"User int command: {int_value}")
-        except:
-            a=0
+        
         
     
             
