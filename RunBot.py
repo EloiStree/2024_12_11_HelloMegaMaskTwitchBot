@@ -252,25 +252,46 @@ def on_message(ws, message):
     mark_index=message.find("!")
     first_comma_index=message.find(":")
     user_name = message[0:mark_index].lower()
+
+  
     user_message= message[first_comma_index+1:].strip()
+    #user_message = user_message.replace("\\U0001F511\\U0001FA99", "KW:").replace("\\U0001F511\\U0001F3AE", "KI:")
     user_message_lenght=len(user_message)
+
+  
     ssh_print(f"User name:{user_name}")
     ssh_print(f"User message:{user_message}")
 
     
+    bool_is_key_wallet_request=False
+    bool_is_key_input_request=False
+
+    if user_message.startswith("KW:"):
+        bool_is_key_wallet_request=True
+        user_message=user_message[3:]
+    elif user_message.startswith("KI:"):
+        bool_is_key_input_request=True
+        user_message=user_message[3:]
+
+
     if user_message.lower().find(user_name.lower()) == 0:
         ssh_print("User name found at start")
         if message.find("|")>0:
             ssh_print ("MetaMask Signed requested")
             if verify_signature_from_text(user_message):
                 ssh_print("Signature verified !!! :)")
-                ws.send(f"PRIVMSG #{CHANNEL} :Signature verified 🎊.")
+                #ws.send(f"PRIVMSG #{CHANNEL} :Signature verified 🎊.")
                 user_id = get_user_id_from_name(user_name)
+
                 if user_id:
                     record_author_as_meta_mask_user_verified(user_id, user_message.split("|")[1])
-                    ws.send(f"PRIVMSG #{CHANNEL} :User {user_name}({user_id}) has been verified and added")
+                    string_key = "Key Input"
+                    if bool_is_key_wallet_request:
+                        string_key = "Key Wallet"
+                    ws.send(f"PRIVMSG #{CHANNEL} : User {user_name}({user_id}) has been verified and added (Type:{string_key})")
             else:
                 ssh_print("Signature not verified :(")
+                ws.send(f"PRIVMSG #{CHANNEL} :Signature not valide.")
                 
     # elif user_message=="!PING":
     #     send_message_pong(ws)
