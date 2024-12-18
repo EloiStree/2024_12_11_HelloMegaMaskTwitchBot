@@ -4,6 +4,7 @@
 
 # pip install requests asyncio web3 hexbytes websocket-client --break-system-packages
 
+import atexit
 import os
 import requests
 import os
@@ -20,6 +21,7 @@ import websocket
 import threading
 import time
 
+ram_db_twitch_name_id = dict()
 
 BOOL_ANONYMOUS_UDP_IS_ON = True
 
@@ -30,24 +32,41 @@ def get_ip_from_hostname(hostname):
         ssh_print(f"Failed to get IP for hostname: {hostname}")
         return None
 
-UDP_IVP4_ANONYMOUS_RELAY = "127.0.0.1"
-UDP_IVP4_ANONYMOUS_RELAY = "194.8.253.226"
-UDP_PORT_ANONYMOUS_RELAY = 3615
-hostname = "apint.ddns.net"
-ip_address = get_ip_from_hostname(hostname)
-print(f"IP address of {hostname} is {ip_address}")
+UDP_IVP4_ANONYMOUS_RELAY = "193.150.14.47"
+UDP_IVP4_ANONYMOUS_RELAY = "localhost"
+UDP_PORT_ANONYMOUS_RELAY_BYTES = 3615
+UDP_PORT_ANONYMOUS_RELAY_TEXT = 3615
 
-if ip_address is not None:
-    UDP_IVP4_ANONYMOUS_RELAY = ip_address
-    print(f"Using {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY} as the relay server")
+## DO YOU WANT TO USE DDNS  as anonymous relay
+bool_use_ddns = False
+if bool_use_ddns:
+    hostname = "apint.ddns.net"
+    ip_address = get_ip_from_hostname(hostname)
+    print(f"IP address of {hostname} is {ip_address}")
+    if ip_address is not None:
+        UDP_IVP4_ANONYMOUS_RELAY = ip_address
+        print(f"Using {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY_BYTES} as the relay server")
     
 
 
 def push_integer_as_anonyme(int_value):
     if BOOL_ANONYMOUS_UDP_IS_ON:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.sendto(struct.pack('<i', int_value), (UDP_IVP4_ANONYMOUS_RELAY, UDP_PORT_ANONYMOUS_RELAY))
-            ssh_print(f"Sent {int_value} to {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY}")
+            s.sendto(struct.pack('<i', int_value), (UDP_IVP4_ANONYMOUS_RELAY, UDP_PORT_ANONYMOUS_RELAY_BYTES))
+            ssh_print(f"Sent {int_value} to {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY_BYTES}")
+            s.close()
+def push_index_integer_as_anonyme(int_index, int_value):
+    if BOOL_ANONYMOUS_UDP_IS_ON:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(struct.pack('<ii', int_index, int_value), (UDP_IVP4_ANONYMOUS_RELAY, UDP_PORT_ANONYMOUS_RELAY_BYTES))
+            ssh_print(f"Sent {int_index} {int_value} to {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY_BYTES}")
+            s.close()
+            
+def push_text_as_anonyme_player(text):
+    if BOOL_ANONYMOUS_UDP_IS_ON:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(text.encode(), (UDP_IVP4_ANONYMOUS_RELAY, UDP_PORT_ANONYMOUS_RELAY_TEXT))
+            ssh_print(f"Sent {text} to {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY_TEXT}")
             s.close()
 
 
@@ -112,6 +131,47 @@ WantedBy=timers.target
 # sudo systemctl list-timers | grep apintio_bot_twitch
 
 
+
+
+
+
+
+
+ram_db_integer_public_address = dict()
+string_path_save_ram_db = "ram_db_int_eth.txt"
+def save_on_file():
+    db_key_value_as_file = ""
+    for key in ram_db_integer_public_address:
+        db_key_value_as_file += f"{key}:{ram_db_integer_public_address[key]}\n"        
+    with open(string_path_save_ram_db, "w") as f:
+            f.write(db_key_value_as_file)
+    print(f"Saved to file user {len(ram_db_integer_public_address)}")
+
+def load_from_file():
+    if os.path.exists(string_path_save_ram_db):
+        string_file = open(string_path_save_ram_db, "r").read()
+        
+        for line in string_file.split("\n"):
+            if len(line) > 0:
+                key, value = line.split(":")
+                ram_db_integer_public_address[key] = value
+    print(f"Loaded from file user {len(ram_db_integer_public_address)}")
+    
+    
+load_from_file()
+
+
+atexit.register(save_on_file)
+
+
+
+
+
+
+
+
+
+
 def read_or_create_file(file_path, default_content=""):
     
     # create directory if not there
@@ -135,16 +195,8 @@ CLIENT_ID =read_or_create_file(client_id_path, "your_twitch_client_id")
 CLIENT_ACCESS_TOKEN= read_or_create_file(client_access_token_path, "your_twitch_token")
 
 
-
-
-
-
-
-
-
 # Where should we store the verified users twithc_id|public_address
 string_where_to_store_verified_user = "/git/metamask_users/twitch"
-
 
 def verify_signature_from_text(text, splitter="|"):
     splitted = text.split(splitter)
@@ -199,7 +251,11 @@ CHANNEL = "eloiteaching"  # Include the hash (#) before the channel name
 
 
 
+api_call_count = 0
 def get_user_id_from_name(user_name):
+    global api_call_count
+    api_call_count += 1
+    print(f"API CALL... {api_call_count}")
     headers = {
         "Client-ID": CLIENT_ID,
         "Authorization": f"Bearer {CLIENT_ACCESS_TOKEN}"
@@ -255,6 +311,7 @@ def on_message(ws, message):
 
   
     user_message= message[first_comma_index+1:].strip()
+    user_message_lower= user_message.lower()
     #user_message = user_message.replace("\\U0001F511\\U0001FA99", "KW:").replace("\\U0001F511\\U0001F3AE", "KI:")
     user_message_lenght=len(user_message)
 
@@ -263,17 +320,17 @@ def on_message(ws, message):
     ssh_print(f"User message:{user_message}")
 
     
-    bool_is_key_wallet_request=False
-    bool_is_key_input_request=False
+    # bool_is_key_wallet_request=False
+    # bool_is_key_input_request=False
 
-    if user_message.startswith("KW:"):
-        bool_is_key_wallet_request=True
-        user_message=user_message[3:]
-    elif user_message.startswith("KI:"):
-        bool_is_key_input_request=True
-        user_message=user_message[3:]
-
-
+    # if user_message.startswith("KW:") or user_message.startswith("KM:"):
+    #     # IS THE KEY FOR THE WALLLET / MetaMask Account
+    #     bool_is_key_wallet_request=True
+    #     user_message=user_message[3:]
+    # elif user_message.startswith("KI:"):
+    #     bool_is_key_input_request=True
+    #     user_message=user_message[3:]
+    
     if user_message.lower().find(user_name.lower()) == 0:
         ssh_print("User name found at start")
         if message.find("|")>0:
@@ -284,10 +341,13 @@ def on_message(ws, message):
                 user_id = get_user_id_from_name(user_name)
 
                 if user_id:
-                    record_author_as_meta_mask_user_verified(user_id, user_message.split("|")[1])
+                    address_public= user_message.split("|")[1]
+                    record_author_as_meta_mask_user_verified(user_id, address_public)
                     string_key = "Key Input"
-                    if bool_is_key_wallet_request:
-                        string_key = "Key Wallet"
+                    # if bool_is_key_wallet_request:
+                    #     string_key = "Key Wallet"
+                    ram_db_integer_public_address[str(user_id)] = address_public
+                    save_on_file()
                     ws.send(f"PRIVMSG #{CHANNEL} : User {user_name}({user_id}) has been verified and added (Type:{string_key})")
             else:
                 ssh_print("Signature not verified :(")
@@ -299,17 +359,53 @@ def on_message(ws, message):
     # elif user_message=="!hello":
     #     send_message(ws,"Hello World!")
         
-    elif user_message=="!time":
+    elif user_message_lower=="!time":
         send_message(ws, time.ctime())
+        
+    elif user_message_lower=="!hello":        
+        if not(user_name in  ram_db_twitch_name_id) :
+            user_id = get_user_id_from_name(user_name)
+            if user_id:
+                ram_db_twitch_name_id[user_name]=user_id
+        twitch_id = ram_db_twitch_name_id[user_name]
+        address_public = ram_db_integer_public_address.get(twitch_id, "None")
+        send_message(ws,f"Hello {user_name}({ram_db_twitch_name_id[user_name]}🦊🔑🎮{address_public}!")
         
     #SHOULD BE AN OTHER BOT THAT JUST READ THE CHAT
     #ADDED JUST TO MAKE SOME QUICK TESTING.
-    elif BOOL_ANONYMOUS_UDP_IS_ON and user_message_lenght>2 and user_message[0]=='!' and user_message[1]=='i': 
-        try:
-            int_value = int(user_message[2:])
-            push_integer_as_anonyme(int_value)
-        except:
-            a=0
+    # !i1300 !i2300
+    elif BOOL_ANONYMOUS_UDP_IS_ON and user_message.find("!i")>-1:
+        split_message= user_message.split(" ")
+        print (f"Splitted message:{split_message}")
+        for split_piece in split_message:
+            print(f"Split piece:{split_piece}")
+            if len(split_piece)>2 and split_piece[0]=='!' and split_piece[1]=='i':
+                
+                t = split_piece[2:]
+                dot_index = t.find(".")
+                
+                if dot_index>-1:
+                    try:
+                        st = t.split(".")
+                        int_index = int(st[0])
+                        int_value = int(st[1])
+                        print(f"Integer request:{int_index} {int_value}")
+                        push_index_integer_as_anonyme(int_index, int_value)
+                    except ValueError:
+                        ssh_print("Not an integer")
+                else:
+                    try:
+                        int_value = int(t)
+                        print(f"Integer request:{int_value}")
+                        push_integer_as_anonyme(int_value)
+                        
+                    except ValueError:
+                        ssh_print("Not an integer")
+                    
+    elif BOOL_ANONYMOUS_UDP_IS_ON and user_message_lenght>2 and user_message[0]=='!' and user_message[1]=='s':
+        print("Shortcut request:"+ user_message[2:])
+        push_text_as_anonyme_player(user_message[2:])
+        
             
     # # TEXT COMMANDS ARE HEAVY AND HAZARDOUS
     # # SHOULD BE AN DEDICATED RASPBERRY WITH SOME TEXT INTERPRETOR TO INTEGER ACTION
@@ -350,13 +446,9 @@ def on_message(ws, message):
         ws.close()
             
             
-        
-        
     
-            
 
 def send_message(ws, message):
-        
     ws.send(f"PRIVMSG #{CHANNEL} :{message}")
     
 def send_message_hello_world(ws):
