@@ -128,6 +128,11 @@ WantedBy=timers.target
 # sudo systemctl status apintio_bot_twitch.service
 # sudo systemctl stop apintio_bot_twitch.service
 # sudo systemctl restart apintio_bot_twitch.service
+
+# sudo systemctl enable apintio_bot_twitch.timer
+# sudo systemctl start apintio_bot_twitch.timer
+# sudo systemctl status apintio_bot_twitch.timer
+
 # sudo systemctl list-timers | grep apintio_bot_twitch
 
 
