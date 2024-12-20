@@ -441,7 +441,7 @@ def on_message(ws, message):
         if is_verified:
             send_message(ws, f"{user_name} ✅ Signature verified! 🦊{address_recovered} >> {text_with_signature}")
         else:
-            send_message(ws, f"{user_name} ❌  {address}🦊 vs 🦊{address_recovered} >> {text_with_signature}")
+            send_message(ws, f"{user_name} ❌ Signature Wrong!  {address} 🦊/🦊{address_recovered} >> {text_with_signature}")
         
     
     elif user_message_lower=="!hello":        
