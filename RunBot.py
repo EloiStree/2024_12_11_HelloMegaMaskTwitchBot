@@ -25,6 +25,12 @@ ram_db_twitch_name_id = dict()
 
 BOOL_ANONYMOUS_UDP_IS_ON = True
 
+# This script should only focus on relay and not something else.
+# I will create an other script to handle kick an ban of http ads and spammer.
+# bool_use_http_autoban = True
+# bool_use_http_autokick= True
+# allowed_http_user = ["apintio", "eloiteaching"]
+
 def get_ip_from_hostname(hostname):
     try:
         return socket.gethostbyname(hostname)
@@ -392,7 +398,11 @@ def on_message(ws, message):
         
     elif user_message_lower=="!time":
         send_message(ws, time.ctime())
-        
+    
+    elif user_message_lower=="!sign":
+        string_url = f"https://eloistree.github.io/SignMetaMaskTextHere/index.html?q={user_name}"
+        send_message(ws,f"MetaMask🦊: {string_url}")
+    
     elif user_message_lower=="!hello":        
         if not(user_name in  ram_db_twitch_name_id) :
             user_id = get_user_id_from_name(user_name)
