@@ -35,7 +35,7 @@ def get_ip_from_hostname(hostname):
 UDP_IVP4_ANONYMOUS_RELAY = "193.150.14.47"
 UDP_IVP4_ANONYMOUS_RELAY = "localhost"
 UDP_PORT_ANONYMOUS_RELAY_BYTES = 3615
-UDP_PORT_ANONYMOUS_RELAY_TEXT = 3615
+UDP_PORT_ANONYMOUS_RELAY_TEXT = 3614
 
 ## DO YOU WANT TO USE DDNS  as anonymous relay
 bool_use_ddns = False
@@ -68,6 +68,14 @@ def push_text_as_anonyme_player(text):
             s.sendto(text.encode(), (UDP_IVP4_ANONYMOUS_RELAY, UDP_PORT_ANONYMOUS_RELAY_TEXT))
             ssh_print(f"Sent {text} to {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY_TEXT}")
             s.close()
+
+def push_char_as_anonyme_player(text):
+    if BOOL_ANONYMOUS_UDP_IS_ON:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.sendto(text.encode(), (UDP_IVP4_ANONYMOUS_RELAY, UDP_PORT_ANONYMOUS_RELAY_TEXT))
+            ssh_print(f"Sent char {text} to {UDP_IVP4_ANONYMOUS_RELAY}:{UDP_PORT_ANONYMOUS_RELAY_TEXT}")
+            s.close()
+
 
 
 BOOL_USE_PRINT = False
@@ -301,15 +309,27 @@ def read_store_public_key(user_id):
         public_key = f.read().strip()
     return public_key
     
-    
+
+def is_integer(s):
+    try: 
+        int(s)
+        return True
+    except ValueError:
+        return False
 
 def on_message(ws, message):
     """Callback for when a message is received."""
     ssh_print(f"Received: {message}")
     
+    
+
+    
     message = message.strip()
     message = message.strip(":")
     #apintio!apintio@apintio.tmi.twitch.tv PRIVMSG #eloiteaching :test
+    
+
+    
     mark_index=message.find("!")
     first_comma_index=message.find(":")
     user_name = message[0:mark_index].lower()
@@ -319,7 +339,13 @@ def on_message(ws, message):
     user_message_lower= user_message.lower()
     #user_message = user_message.replace("\\U0001F511\\U0001FA99", "KW:").replace("\\U0001F511\\U0001F3AE", "KI:")
     user_message_lenght=len(user_message)
-
+    if user_message_lenght==1:
+        ssh_print(f"Char Cmd:{user_message}")
+        push_char_as_anonyme_player(user_message)
+        
+    if user_message_lenght==2:
+            if not is_integer(user_message):
+                push_char_as_anonyme_player(user_message[0])
   
     ssh_print(f"User name:{user_name}")
     ssh_print(f"User message:{user_message}")
