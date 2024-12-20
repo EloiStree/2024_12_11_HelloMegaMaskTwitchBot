@@ -43,6 +43,10 @@ UDP_IVP4_ANONYMOUS_RELAY = "localhost"
 UDP_PORT_ANONYMOUS_RELAY_BYTES = 3615
 UDP_PORT_ANONYMOUS_RELAY_TEXT = 3614
 
+
+help_replay_message= "Go on Discord and ping for a wizard to help you. 🧙‍♂️😋"
+
+
 ## DO YOU WANT TO USE DDNS  as anonymous relay
 bool_use_ddns = False
 if bool_use_ddns:
@@ -231,6 +235,20 @@ def verify_signature(message, public_address, signed_message):
     is_verified = address_recovered == public_address
     return is_verified
 
+def verify_signature_with_addresses(text, splitter="|"):
+    splitted = text.split(splitter)
+    if len(splitted) == 3:
+        return verify_signature_with_addresses_params(splitted[0], splitted[1], splitted[2])
+    return False, "",""
+
+def verify_signature_with_addresses_params(message, public_address, signed_message):
+    w3 = Web3(Web3.HTTPProvider(""))
+    mesage= encode_defunct(text=message)
+    address_recovered = w3.eth.account.recover_message(mesage,signature=HexBytes(signed_message))
+    ssh_print(address_recovered+" Recoverd vs Claim +"+public_address)
+    is_verified = address_recovered == public_address
+    return is_verified, public_address, address_recovered
+
 def record_author_as_meta_mask_user_verified(author_id, public_address):
     ssh_print(f"Recorded user {author_id} as verified with public address {public_address}")
     if not os.path.exists(string_where_to_store_verified_user):
@@ -395,13 +413,36 @@ def on_message(ws, message):
         
     # elif user_message=="!hello":
     #     send_message(ws,"Hello World!")
+    
+    # elif user_message_lower=="!kick":
+    #     if is_admin(user_name):
+    #         send_message(ws,"/timeout "+user_name+" 1")
         
+    # elif user_message_lower=="!ban":
+    #     if is_admin(user_name):
+    #         send_message(ws,"/ban "+user_name)
+    
+    # elif user_message_lower=="!unban":
+    #     if is_admin(user_name):
+    #         send_message(ws,"/unban "+user_name)
+    
+    elif user_message_lower=="!help":
+        send_message(ws,f"{user_name} {help_replay_message}")
+        
+        
+    
     elif user_message_lower=="!time":
         send_message(ws, time.ctime())
     
-    elif user_message_lower=="!sign":
-        string_url = f"https://eloistree.github.io/SignMetaMaskTextHere/index.html?q={user_name}"
-        send_message(ws,f"MetaMask🦊: {string_url}")
+    elif user_message_lower.startswith("!verify"):
+        text_with_signature = user_message[8:].strip()
+        is_verified, address, address_recovered = verify_signature_with_addresses(text_with_signature)
+
+        if is_verified:
+            send_message(ws, f"{user_name} ✅ Signature verified! 🦊{address_recovered} >> {text_with_signature}")
+        else:
+            send_message(ws, f"{user_name} ❌  {address}🦊 vs 🦊{address_recovered} >> {text_with_signature}")
+        
     
     elif user_message_lower=="!hello":        
         if not(user_name in  ram_db_twitch_name_id) :
@@ -443,9 +484,11 @@ def on_message(ws, message):
                     except ValueError:
                         ssh_print("Not an integer")
                     
-    elif BOOL_ANONYMOUS_UDP_IS_ON and user_message_lenght>2 and user_message[0]=='!' and user_message[1]=='s':
-        print("Shortcut request:"+ user_message[2:])
-        push_text_as_anonyme_player(user_message[2:])
+    # !s means shortcut instruction.
+    # by default ! at start of a message is a shortcut instruction.
+    elif BOOL_ANONYMOUS_UDP_IS_ON and (user_message_lenght>1 and user_message[0]=='!'):
+        print("Shortcut request:"+ user_message[1:])
+        push_text_as_anonyme_player(user_message[1:])
         
             
     # # TEXT COMMANDS ARE HEAVY AND HAZARDOUS
