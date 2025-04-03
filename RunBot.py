@@ -104,10 +104,10 @@ BOOL_USE_PRINT = is_ssh()
 
 
 
-# Debian: /lib/systemd/system/apintio_bot_twitch.service
+# Debian: /etc/systemd/system/apint_bot_twitch.service
 # Learn: https://youtu.be/nvx9jJhSELQ?t=279s
 
-# sudo nano /lib/systemd/system/apintio_bot_twitch.service
+# sudo nano /etc/systemd/system/apint_bot_twitch.service
 """
 [Unit]
 Description=Twitch Bot Auth
@@ -115,16 +115,16 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /git/twitch_bot/RunBot.py
+ExecStart=/usr/bin/python3 /git/apint_bot_twitch/RunBot.py
 Restart=always
 User=root
-WorkingDirectory=/git/twitch_bot
+WorkingDirectory=/git/apint_bot_twitch
 
 [Install]
 WantedBy=multi-user.target
 """
 #1h
-# sudo nano /etc/systemd/system/apintio_bot_twitch.timer
+# sudo nano /etc/systemd/system/apint_bot_twitch.timer
 """
 [Unit]
 Description=Twitch Bot Auth time manager
@@ -137,21 +137,21 @@ OnUnitActiveSec=10s
 WantedBy=timers.target
 """
 # Learn: https://youtu.be/nvx9jJhSELQ?t=368
-# cd /lib/systemd/system/
+# cd /etc/systemd/system/
 # sudo systemctl daemon-reload
-# sudo systemctl enable apintio_bot_twitch.service
-# chmod +x /git/twitch_bot/RunBot.py
-# sudo systemctl enable apintio_bot_twitch.service
-# sudo systemctl start apintio_bot_twitch.service
-# sudo systemctl status apintio_bot_twitch.service
-# sudo systemctl stop apintio_bot_twitch.service
-# sudo systemctl restart apintio_bot_twitch.service
+# sudo systemctl enable apint_bot_twitch.service
+# chmod +x /git/apint_bot_twitch/RunBot.py
+# sudo systemctl enable apint_bot_twitch.service
+# sudo systemctl start apint_bot_twitch.service
+# sudo systemctl status apint_bot_twitch.service
+# sudo systemctl stop apint_bot_twitch.service
+# sudo systemctl restart apint_bot_twitch.service
 
-# sudo systemctl enable apintio_bot_twitch.timer
-# sudo systemctl start apintio_bot_twitch.timer
-# sudo systemctl status apintio_bot_twitch.timer
+# sudo systemctl enable apint_bot_twitch.timer
+# sudo systemctl start apint_bot_twitch.timer
+# sudo systemctl status apint_bot_twitch.timer
 
-# sudo systemctl list-timers | grep apintio_bot_twitch
+# sudo systemctl list-timers | grep apint_bot_twitch
 
 
 
