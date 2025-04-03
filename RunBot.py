@@ -137,21 +137,23 @@ OnUnitActiveSec=10s
 WantedBy=timers.target
 """
 # Learn: https://youtu.be/nvx9jJhSELQ?t=368
-# cd /etc/systemd/system/
-# sudo systemctl daemon-reload
-# sudo systemctl enable apint_bot_twitch.service
-# chmod +x /git/apint_bot_twitch/RunBot.py
-# sudo systemctl enable apint_bot_twitch.service
-# sudo systemctl start apint_bot_twitch.service
-# sudo systemctl status apint_bot_twitch.service
-# sudo systemctl stop apint_bot_twitch.service
-# sudo systemctl restart apint_bot_twitch.service
+"""
+cd /etc/systemd/system/
+sudo systemctl daemon-reload
+chmod +x /git/apint_bot_twitch/RunBot.py
+sudo systemctl enable apint_bot_twitch.service
+sudo systemctl enable apint_bot_twitch.timer
+sudo systemctl start apint_bot_twitch.service
+sudo systemctl start apint_bot_twitch.timer
 
-# sudo systemctl enable apint_bot_twitch.timer
-# sudo systemctl start apint_bot_twitch.timer
-# sudo systemctl status apint_bot_twitch.timer
+sudo systemctl restart apint_bot_twitch.service
+sudo systemctl enable apint_bot_twitch.timer
+sudo systemctl stop apint_bot_twitch.service
 
-# sudo systemctl list-timers | grep apint_bot_twitch
+sudo systemctl status apint_bot_twitch.service
+sudo systemctl status apint_bot_twitch.timer
+sudo systemctl list-timers | grep apint_bot_twitch
+"""
 
 
 
@@ -408,11 +410,11 @@ def on_message(ws, message):
                 ssh_print("Signature not verified :(")
                 ws.send(f"PRIVMSG #{CHANNEL} :Signature not valide.")
                 
-    # elif user_message=="!PING":
-    #     send_message_pong(ws)
+    elif user_message=="!ping":
+         send_message_pong(ws)
         
-    # elif user_message=="!hello":
-    #     send_message(ws,"Hello World!")
+    elif user_message=="!hello":
+        send_message(ws,"Hello World!")
     
     # elif user_message_lower=="!kick":
     #     if is_admin(user_name):
@@ -530,7 +532,7 @@ def on_message(ws, message):
         ws.close()
             
             
-    
+# 
 
 def send_message(ws, message):
     ws.send(f"PRIVMSG #{CHANNEL} :{message}")
@@ -542,7 +544,7 @@ def send_message_bye_world(ws):
     send_message(ws,"Server Stop 🛑👋!")
     
 def send_message_pong(ws):
-    send_message(ws,"PONG")
+    send_message(ws,"pong")
         
 
 def on_error(ws, error):
